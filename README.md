@@ -8,6 +8,8 @@
   A Chrome extension to save, organize, and manage your <a href="https://excalidraw.com">Excalidraw</a> drawings locally in the browser.
 </p>
 
+<img width="2560" height="1600" alt="1" src="https://github.com/user-attachments/assets/88afff04-f24b-458e-abd5-465b5d944006" />
+
 ---
 
 ## Features
