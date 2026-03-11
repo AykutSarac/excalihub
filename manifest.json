@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Excalihub",
+  "version": "1.0.0",
+  "description": "Store and manage Excalidraw files locally in your browser",
+  "permissions": ["storage", "unlimitedStorage"],
+  "content_scripts": [
+    {
+      "matches": ["https://excalidraw.com/*"],
+      "js": ["dist/content.js"],
+      "css": ["content.css"]
+    }
+  ],
+  "icons": {
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/icon48.png"],
+      "matches": ["https://excalidraw.com/*"]
+    }
+  ]
+}
