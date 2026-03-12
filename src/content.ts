@@ -1,4 +1,4 @@
-import { saveCurrentScene, handleFileImport, renderFileList, closeAllMenus, exportAllFiles, deleteAllFilesPrompt } from "./ui";
+import { saveCurrentScene, handleFileImport, renderFileList, closeAllMenus, exportAllFiles, deleteAllFilesPrompt, handleAiGenerate, showApiKeySettings } from "./ui";
 import { getExcalidrawTheme } from "./theme";
 
 function applyTheme(): void {
@@ -36,6 +36,13 @@ function createPanel(): void {
   panel.innerHTML = `
     <div class="excalihub-header">
       <h2><img src="${chrome.runtime.getURL("icons/icon48.png")}" alt="" class="excalihub-logo" />Excalihub</h2>
+      <div style="display:flex;align-items:center;gap:0.25rem;">
+        <button class="excalihub-header-menu-btn" id="excalihub-settings-btn" title="API Key Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
       <div class="excalihub-menu-wrapper">
         <button class="excalihub-header-menu-btn" id="excalihub-header-menu-btn">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
@@ -50,10 +57,41 @@ function createPanel(): void {
           <button class="excalihub-menu-item danger" id="excalihub-delete-all-btn">Delete all</button>
         </div>
       </div>
+      </div>
     </div>
     <div class="excalihub-actions">
       <button class="excalihub-btn primary" id="excalihub-save-btn">Save current</button>
       <button class="excalihub-btn" id="excalihub-import-btn">Import file</button>
+    </div>
+    <div class="excalihub-ai-section">
+      <div class="excalihub-ai-header" id="excalihub-ai-toggle">
+        <span class="excalihub-ai-label">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a4 4 0 0 0-4 4c0 2 2 3 2 5h4c0-2 2-3 2-5a4 4 0 0 0-4-4z"/>
+            <line x1="10" y1="17" x2="14" y2="17"/>
+            <line x1="10" y1="20" x2="14" y2="20"/>
+            <line x1="11" y1="23" x2="13" y2="23"/>
+          </svg>
+          Generate with AI
+        </span>
+        <svg class="excalihub-ai-chevron" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="excalihub-ai-body" id="excalihub-ai-body">
+        <textarea class="excalihub-ai-prompt" id="excalihub-ai-prompt" placeholder="Describe what you want to draw...&#10;&#10;e.g. A flowchart showing user login flow with steps: enter credentials, validate, success/failure branches" rows="3"></textarea>
+        <label class="excalihub-ai-extend-label" for="excalihub-ai-extend">
+          <input type="checkbox" id="excalihub-ai-extend" class="excalihub-ai-extend-checkbox" />
+          <span>Extend current canvas</span>
+        </label>
+        <button class="excalihub-btn primary excalihub-ai-btn" id="excalihub-ai-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          Generate
+        </button>
+        <div class="excalihub-ai-status" id="excalihub-ai-status"></div>
+      </div>
     </div>
     <div class="excalihub-file-list" id="excalihub-file-list"></div>
     <input type="file" id="excalihub-file-input" accept=".excalidraw" multiple style="display:none" />
@@ -91,6 +129,27 @@ function createPanel(): void {
       });
       menu.classList.toggle("open");
     });
+
+  // AI section toggle
+  document.getElementById("excalihub-ai-toggle")!.addEventListener("click", () => {
+    const body = document.getElementById("excalihub-ai-body")!;
+    const section = body.parentElement!;
+    section.classList.toggle("expanded");
+  });
+
+  // AI generate button
+  document.getElementById("excalihub-ai-btn")!.addEventListener("click", handleAiGenerate);
+
+  // AI prompt Ctrl+Enter shortcut
+  document.getElementById("excalihub-ai-prompt")!.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleAiGenerate();
+    }
+  });
+
+  // Settings button
+  document.getElementById("excalihub-settings-btn")!.addEventListener("click", showApiKeySettings);
 
   document
     .getElementById("excalihub-export-all-btn")!

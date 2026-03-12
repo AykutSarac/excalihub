@@ -639,3 +639,127 @@
   text-align: center;
   padding: 0.5rem 0;
 }
+
+/* AI Section */
+.excalihub-ai-section {
+  border-bottom: 1px solid var(--et-border);
+  flex-shrink: 0;
+}
+
+.excalihub-ai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s ease-out;
+}
+
+.excalihub-ai-header:hover {
+  background: var(--et-surface-high);
+}
+
+.excalihub-ai-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--et-text);
+}
+
+.excalihub-ai-chevron {
+  color: var(--et-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.excalihub-ai-section.expanded .excalihub-ai-chevron {
+  transform: rotate(180deg);
+}
+
+.excalihub-ai-body {
+  display: none;
+  padding: 0 0.75rem 0.75rem;
+}
+
+.excalihub-ai-section.expanded .excalihub-ai-body {
+  display: block;
+}
+
+.excalihub-ai-prompt {
+  width: 100%;
+  min-height: 60px;
+  max-height: 120px;
+  resize: vertical;
+  background: var(--et-surface-low);
+  color: var(--et-text);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius);
+  padding: 0.5rem 0.625rem;
+  font-family: var(--et-font);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease-out;
+}
+
+.excalihub-ai-prompt::placeholder {
+  color: var(--et-text-muted);
+}
+
+.excalihub-ai-prompt:focus {
+  border-color: var(--et-primary);
+}
+
+.excalihub-ai-extend-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--et-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.excalihub-ai-extend-checkbox {
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--et-primary);
+}
+
+.excalihub-ai-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.excalihub-ai-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.excalihub-ai-status {
+  font-size: 0.75rem;
+  margin-top: 0.375rem;
+  line-height: 1.4;
+  min-height: 0;
+}
+
+.excalihub-ai-status.loading {
+  color: var(--et-text-muted);
+}
+
+.excalihub-ai-status.success {
+  color: var(--et-success);
+}
+
+.excalihub-ai-status.error {
+  color: var(--et-danger);
+}
+
+.excalihub-ai-key-hint {
+  font-size: 0.75rem;
+  color: var(--et-text-muted);
+  margin-top: 0.375rem;
+}
