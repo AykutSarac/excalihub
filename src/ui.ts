@@ -5,8 +5,99 @@ import { getExcalidrawTheme } from "./theme";
 import { generateDrawing, generateContinuation, summarizeCanvas, getApiKey, setApiKey } from "./ai";
 
 const EXCALIDRAW_LC_KEY = "excalidraw";
+const OPENED_FILE_KEY = "excalihub_opened_file";
+const SNAPSHOT_KEY = "excalihub_canvas_snapshot";
 
 let currentFolderId: string | undefined = undefined;
+let originalTitle: string | null = null;
+
+// ── Opened file tracking ─────────────────────────────────────────────
+interface OpenedFile {
+  id: string;
+  name: string;
+}
+
+export function getOpenedFile(): OpenedFile | null {
+  try {
+    const raw = sessionStorage.getItem(OPENED_FILE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setOpenedFile(id: string, name: string): void {
+  sessionStorage.setItem(OPENED_FILE_KEY, JSON.stringify({ id, name }));
+  updateTabTitle();
+  renderFileList();
+}
+
+export function clearOpenedFile(): void {
+  sessionStorage.removeItem(OPENED_FILE_KEY);
+  updateTabTitle();
+  renderFileList();
+}
+
+function canvasFingerprint(elementsJson?: string): string {
+  try {
+    const raw = elementsJson ?? localStorage.getItem(EXCALIDRAW_LC_KEY) ?? "[]";
+    const elements = JSON.parse(raw) as Record<string, unknown>[];
+    if (!Array.isArray(elements)) return "empty";
+    const alive = elements.filter((el) => !el.isDeleted);
+    if (alive.length === 0) return "empty";
+    // Build a stable fingerprint from meaningful properties only
+    const parts = alive.map((el) => {
+      const { id, type, x, y, width, height, angle, strokeColor, backgroundColor, text, points, groupIds } = el as Record<string, unknown>;
+      return JSON.stringify({ id, type, x, y, width, height, angle, strokeColor, backgroundColor, text, points, groupIds });
+    });
+    parts.sort();
+    return parts.join("|");
+  } catch {
+    return "empty";
+  }
+}
+
+function snapshotCanvas(elementsJson?: string): void {
+  sessionStorage.setItem(SNAPSHOT_KEY, canvasFingerprint(elementsJson));
+}
+
+export function hasUnsavedChanges(): boolean {
+  const snapshot = sessionStorage.getItem(SNAPSHOT_KEY);
+  const current = canvasFingerprint();
+  // No snapshot means nothing was ever saved/loaded — treat any content as unsaved
+  if (snapshot === null) return current !== "empty";
+  return current !== snapshot;
+}
+
+function updateTabTitle(): void {
+  const opened = getOpenedFile();
+  if (opened) {
+    const baseName = opened.name.replace(/\.excalidraw$/, "");
+    if (originalTitle === null) originalTitle = document.title;
+    document.title = `${baseName} | ${originalTitle}`;
+  } else if (originalTitle !== null) {
+    document.title = originalTitle;
+    originalTitle = null;
+  }
+}
+
+// Restore tab title and snapshot on load if a file was already open
+updateTabTitle();
+
+(async () => {
+  const opened = getOpenedFile();
+  if (opened && !sessionStorage.getItem(SNAPSHOT_KEY)) {
+    try {
+      const record = await getFile(opened.id);
+      if (record) {
+        const parsed = JSON.parse(record.data);
+        snapshotCanvas(JSON.stringify(parsed.elements || []));
+      }
+    } catch {
+      // ignore
+    }
+  }
+})();
 
 function showModal(content: string): HTMLElement {
   const existing = document.getElementById("excalihub-modal-overlay");
@@ -127,10 +218,19 @@ export async function saveCurrentScene(): Promise<void> {
     const sceneData = await extractSceneFromPage();
     if (!sceneData) return;
 
-    const d = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const name = `${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}.excalidraw`;
-    await saveFile(name, sceneData);
+    const opened = getOpenedFile();
+    if (opened) {
+      // Update the currently opened file
+      await updateFileData(opened.id, sceneData);
+    } else {
+      // Create a new file
+      const d = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const name = `${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}.excalidraw`;
+      const record = await saveFile(name, sceneData);
+      setOpenedFile(record.id, record.name);
+    }
+    snapshotCanvas();
     renderFileList();
   } catch (err) {
     console.error("Excalihub: save error", err);
@@ -183,6 +283,12 @@ export async function exportAllFiles(): Promise<void> {
 
 export async function renderFileList(): Promise<void> {
   const container = document.getElementById("excalihub-file-list")!;
+
+  // Update save button label based on opened file state
+  const saveBtn = document.getElementById("excalihub-save-btn");
+  if (saveBtn) {
+    saveBtn.textContent = getOpenedFile() ? "Update" : "Save current";
+  }
 
   try {
     const [allFiles, allFolders] = await Promise.all([getAllFiles(), getAllFolders()]);
@@ -258,7 +364,10 @@ export async function renderFileList(): Promise<void> {
       `;
     }
 
+    const openedFileId = getOpenedFile()?.id;
+
     for (const f of filesInView) {
+      const isActive = f.id === openedFileId;
       let moveSubmenu = "";
       if (currentFolderId) {
         moveSubmenu = `
@@ -282,7 +391,7 @@ export async function renderFileList(): Promise<void> {
       }
 
       html += `
-        <div class="excalihub-file-card" data-id="${f.id}">
+        <div class="excalihub-file-card${isActive ? " active" : ""}" data-id="${f.id}">
           <div class="excalihub-file-card-header">
             <div class="excalihub-file-info" data-action="load" data-id="${f.id}">
               <svg class="excalihub-file-icon" width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
@@ -452,6 +561,15 @@ async function loadFileToExcalidraw(id: string): Promise<void> {
         dataTransfer,
       })
     );
+
+    // Snapshot from the file's elements immediately (before Excalidraw processes the drop)
+    try {
+      const parsed = JSON.parse(record.data);
+      snapshotCanvas(JSON.stringify(parsed.elements || []));
+    } catch {
+      snapshotCanvas("[]");
+    }
+    setOpenedFile(id, record.name);
   } catch (err) {
     console.error("Excalihub: load error", err);
   }
@@ -552,7 +670,10 @@ async function renameFilePrompt(id: string): Promise<void> {
   const baseName = displayName(file.name);
   const input = prompt("Rename file:", baseName);
   if (input && input !== baseName) {
-    await updateFileName(id, input + ".excalidraw");
+    const newName = input + ".excalidraw";
+    await updateFileName(id, newName);
+    const opened = getOpenedFile();
+    if (opened?.id === id) setOpenedFile(id, newName);
     renderFileList();
   }
 }
@@ -580,12 +701,15 @@ export async function deleteAllFilesPrompt(): Promise<void> {
   if (!confirm("Delete all saved files and folders?")) return;
   await chrome.storage.local.remove([STORAGE_KEY, FOLDERS_KEY]);
   currentFolderId = undefined;
+  clearOpenedFile();
   renderFileList();
 }
 
 async function deleteFilePrompt(id: string): Promise<void> {
   if (!confirm("Delete this file?")) return;
   await deleteFile(id);
+  const opened = getOpenedFile();
+  if (opened?.id === id) clearOpenedFile();
   renderFileList();
 }
 

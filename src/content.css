@@ -151,6 +151,12 @@
   object-fit: contain;
 }
 
+/* Active file in list */
+.excalihub-file-card.active {
+  border-color: var(--et-primary);
+  background: var(--et-surface-high);
+}
+
 /* Actions bar */
 .excalihub-actions {
   padding: 0.75rem;
@@ -187,6 +193,19 @@
   box-shadow: 0 0 0 1px var(--et-primary);
 }
 
+.excalihub-btn.dashed {
+  border-style: dashed;
+  border-color: var(--et-text-muted);
+  background: transparent;
+  color: var(--et-text-secondary);
+}
+
+.excalihub-btn.dashed:hover {
+  border-color: var(--et-primary);
+  color: var(--et-primary);
+  background: transparent;
+}
+
 .excalihub-btn.primary {
   background: var(--et-primary);
   color: var(--et-primary-text);
@@ -196,6 +215,12 @@
 .excalihub-btn.primary:hover {
   background: var(--et-primary-darker);
   border-color: var(--et-primary-darker);
+}
+
+.excalihub-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .excalihub-btn.danger {

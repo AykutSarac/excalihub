@@ -1,6 +1,72 @@
-import { saveCurrentScene, handleFileImport, renderFileList, closeAllMenus, exportAllFiles, deleteAllFilesPrompt, handleAiGenerate, showApiKeySettings } from "./ui";
+import { saveCurrentScene, handleFileImport, renderFileList, closeAllMenus, exportAllFiles, deleteAllFilesPrompt, handleAiGenerate, showApiKeySettings, clearOpenedFile, hasUnsavedChanges } from "./ui";
 import { enterPresentationMode, getFramesFromScene, PresentationFrame } from "./presentation";
 import { getExcalidrawTheme } from "./theme";
+
+function loadEmptyCanvas(): void {
+  const emptyScene = JSON.stringify({
+    type: "excalidraw",
+    version: 2,
+    source: "https://excalidraw.com",
+    elements: [],
+    appState: {},
+    files: {},
+  });
+  const blob = new Blob([emptyScene], { type: "application/json" });
+  const file = new File([blob], "new.excalidraw", { type: "application/json" });
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(file);
+  const canvas = document.querySelector(".excalidraw") as HTMLElement;
+  if (!canvas) return;
+  canvas.dispatchEvent(
+    new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer })
+  );
+  clearOpenedFile();
+}
+
+function createNewCanvas(): void {
+  if (!hasUnsavedChanges()) {
+    loadEmptyCanvas();
+    return;
+  }
+
+  const isDark = getExcalidrawTheme() === "dark";
+  const overlay = document.createElement("div");
+  overlay.className = `excalihub-modal-overlay${isDark ? " theme-dark" : ""}`;
+  overlay.innerHTML = `
+    <div class="excalihub-modal">
+      <h3>Unsaved changes</h3>
+      <p style="margin:0.5rem 0 1.25rem;color:var(--et-text-secondary);font-size:0.85rem;">
+        You have content on the canvas that hasn't been saved. Creating a new canvas will discard it.
+      </p>
+      <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+        <button class="excalihub-btn" id="excalihub-new-cancel">Cancel</button>
+        <button class="excalihub-btn" id="excalihub-new-save" style="background:var(--et-primary);color:var(--et-primary-text);">Save &amp; Create new</button>
+        <button class="excalihub-btn danger" id="excalihub-new-discard">Discard &amp; Create new</button>
+      </div>
+    </div>
+  `;
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  document.body.appendChild(overlay);
+
+  document.getElementById("excalihub-new-cancel")!.addEventListener("click", () => {
+    overlay.remove();
+  });
+
+  document.getElementById("excalihub-new-save")!.addEventListener("click", async () => {
+    await saveCurrentScene();
+    overlay.remove();
+    loadEmptyCanvas();
+  });
+
+  document.getElementById("excalihub-new-discard")!.addEventListener("click", () => {
+    overlay.remove();
+    loadEmptyCanvas();
+  });
+}
 
 function applyTheme(): void {
   const theme = getExcalidrawTheme();
@@ -308,8 +374,14 @@ function createPanel(): void {
       </div>
     </div>
     <div class="excalihub-actions">
-      <button class="excalihub-btn primary" id="excalihub-save-btn">Save current</button>
+      <button class="excalihub-btn dashed" id="excalihub-new-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Create new
+      </button>
       <button class="excalihub-btn" id="excalihub-import-btn">Import file</button>
+      <button class="excalihub-btn primary" id="excalihub-save-btn">Save current</button>
     </div>
     <div class="excalihub-ai-section">
       <div class="excalihub-ai-header" id="excalihub-ai-toggle">
@@ -352,6 +424,10 @@ function createPanel(): void {
     toggle.classList.toggle("shifted", isOpen);
     if (isOpen) renderFileList();
   });
+
+  document
+    .getElementById("excalihub-new-btn")!
+    .addEventListener("click", createNewCanvas);
 
   document
     .getElementById("excalihub-save-btn")!
