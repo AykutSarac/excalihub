@@ -1,4 +1,5 @@
 import { saveCurrentScene, handleFileImport, renderFileList, closeAllMenus, exportAllFiles, deleteAllFilesPrompt, handleAiGenerate, showApiKeySettings } from "./ui";
+import { enterPresentationMode } from "./presentation";
 import { getExcalidrawTheme } from "./theme";
 
 function applyTheme(): void {
@@ -36,7 +37,13 @@ function createPanel(): void {
   panel.innerHTML = `
     <div class="excalihub-header">
       <h2><img src="${chrome.runtime.getURL("icons/icon48.png")}" alt="" class="excalihub-logo" />Excalihub</h2>
-      <div class="excalihub-menu-wrapper">
+      <div class="excalihub-header-right">
+        <button class="excalihub-present-btn" id="excalihub-present-btn" title="Presentation mode">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </button>
+        <div class="excalihub-menu-wrapper">
         <button class="excalihub-header-menu-btn" id="excalihub-header-menu-btn">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
             <rect x="3" y="4" width="12" height="1.5" rx="0.75"/>
@@ -50,6 +57,7 @@ function createPanel(): void {
           <div class="excalihub-menu-divider"></div>
           <button class="excalihub-menu-item danger" id="excalihub-delete-all-btn">Delete all</button>
         </div>
+      </div>
       </div>
     </div>
     <div class="excalihub-actions">
@@ -140,6 +148,15 @@ function createPanel(): void {
       handleAiGenerate();
     }
   });
+
+  document
+    .getElementById("excalihub-present-btn")!
+    .addEventListener("click", () => {
+      // Close panel before presenting
+      panel.classList.remove("open");
+      toggle.classList.remove("shifted");
+      enterPresentationMode();
+    });
 
   document
     .getElementById("excalihub-api-key-btn")!

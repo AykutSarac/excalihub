@@ -10,6 +10,11 @@
       "matches": ["https://excalidraw.com/*"],
       "js": ["dist/content.js"],
       "css": ["content.css"]
+    },
+    {
+      "matches": ["https://excalidraw.com/*"],
+      "js": ["bridge.js"],
+      "world": "MAIN"
     }
   ],
   "icons": {

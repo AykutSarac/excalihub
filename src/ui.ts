@@ -494,7 +494,7 @@ async function shareFile(id: string): Promise<void> {
       <h3>Shareable link</h3>
       <div class="excalihub-modal-label">Link</div>
       <div class="excalihub-modal-link-row">
-        <input class="excalihub-modal-link-input" value="${url}" readonly />
+        <input class="excalihub-modal-link-input" value="${escapeHtml(url)}" readonly />
         <button class="excalihub-modal-copy-btn" id="excalihub-copy-link">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>

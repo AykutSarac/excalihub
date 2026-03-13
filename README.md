@@ -23,6 +23,7 @@
 ## Features
 
 - **Save & Organize** — Save scenes, rename files, organize into folders, import/export `.excalidraw` files
+- **Presentation Mode** — Turn frames into slides and present directly from Excalidraw with keyboard navigation, fullscreen, theme toggle, and slide export
 - **AI Generation** — Describe a diagram in plain text and get a full Excalidraw scene with shapes, arrows, and labels
 - **Extend Canvas** — AI reads your existing drawing and adds to it contextually
 - **Share** — Generate shareable Excalidraw links from the file menu

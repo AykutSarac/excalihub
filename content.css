@@ -763,3 +763,142 @@
   color: var(--et-text-muted);
   margin-top: 0.375rem;
 }
+
+/* Header right group */
+.excalihub-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Present button in header */
+.excalihub-present-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--et-radius);
+  color: var(--et-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease-out, color 0.15s ease-out;
+}
+
+.excalihub-present-btn:hover {
+  background: var(--et-surface-high);
+  color: var(--et-primary);
+}
+
+/* ============================================
+   Presentation Mode
+   ============================================ */
+
+/* Hide Excalidraw UI and Excalihub panel during presentation */
+.excalihub-presenting #excalihub-toggle,
+.excalihub-presenting #excalihub-panel {
+  display: none !important;
+}
+
+.excalihub-presenting .layer-ui__wrapper {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.excalihub-presenting .excalidraw {
+  cursor: default !important;
+}
+
+/* Presentation overlay */
+#excalihub-presentation {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 24px;
+  font-family: Assistant, system-ui, BlinkMacSystemFont, -apple-system, Segoe UI,
+    Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Toolbar */
+.pres-toolbar {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 6px 10px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.1);
+  user-select: none;
+}
+
+.pres-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #444;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+}
+
+.pres-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.pres-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.pres-btn:disabled:hover {
+  background: transparent;
+}
+
+.pres-counter {
+  font-size: 14px;
+  font-weight: 500;
+  color: #444;
+  padding: 0 8px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.pres-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.12);
+  margin: 0 4px;
+}
+
+/* Dark theme for presentation toolbar */
+#excalihub-presentation.pres-dark .pres-toolbar {
+  background: #1e1e1e;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.35), 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+#excalihub-presentation.pres-dark .pres-btn {
+  color: #d4d4d4;
+}
+
+#excalihub-presentation.pres-dark .pres-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#excalihub-presentation.pres-dark .pres-counter {
+  color: #d4d4d4;
+}
+
+#excalihub-presentation.pres-dark .pres-divider {
+  background: rgba(255, 255, 255, 0.12);
+}
