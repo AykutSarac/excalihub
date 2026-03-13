@@ -36,13 +36,6 @@ function createPanel(): void {
   panel.innerHTML = `
     <div class="excalihub-header">
       <h2><img src="${chrome.runtime.getURL("icons/icon48.png")}" alt="" class="excalihub-logo" />Excalihub</h2>
-      <div style="display:flex;align-items:center;gap:0.25rem;">
-        <button class="excalihub-header-menu-btn" id="excalihub-settings-btn" title="API Key Settings">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-        </button>
       <div class="excalihub-menu-wrapper">
         <button class="excalihub-header-menu-btn" id="excalihub-header-menu-btn">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
@@ -52,11 +45,11 @@ function createPanel(): void {
           </svg>
         </button>
         <div class="excalihub-menu" id="excalihub-header-menu">
+          <button class="excalihub-menu-item" id="excalihub-api-key-btn">API Key Settings</button>
           <button class="excalihub-menu-item" id="excalihub-export-all-btn">Export all</button>
           <div class="excalihub-menu-divider"></div>
           <button class="excalihub-menu-item danger" id="excalihub-delete-all-btn">Delete all</button>
         </div>
-      </div>
       </div>
     </div>
     <div class="excalihub-actions">
@@ -148,8 +141,12 @@ function createPanel(): void {
     }
   });
 
-  // Settings button
-  document.getElementById("excalihub-settings-btn")!.addEventListener("click", showApiKeySettings);
+  document
+    .getElementById("excalihub-api-key-btn")!
+    .addEventListener("click", () => {
+      closeAllMenus();
+      showApiKeySettings();
+    });
 
   document
     .getElementById("excalihub-export-all-btn")!

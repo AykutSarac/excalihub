@@ -3,7 +3,8 @@ import { STORAGE_KEY, FOLDERS_KEY, saveFile, getAllFiles, getFile, deleteFile, u
 import { shareToExcalidraw } from "./share";
 import { getExcalidrawTheme } from "./theme";
 import { generateDrawing, generateContinuation, summarizeCanvas, getApiKey, setApiKey } from "./ai";
-import type { CanvasSummary } from "./ai";
+
+const EXCALIDRAW_LC_KEY = "excalidraw";
 
 let currentFolderId: string | undefined = undefined;
 
@@ -86,7 +87,7 @@ function getIndexedDBFiles(): Promise<Record<string, unknown>> {
 }
 
 async function extractSceneFromPage(): Promise<string | null> {
-  const elementsRaw = localStorage.getItem("excalidraw");
+  const elementsRaw = localStorage.getItem(EXCALIDRAW_LC_KEY);
   if (!elementsRaw) return null;
 
   let elements: unknown[];
@@ -607,7 +608,11 @@ function loadSceneToExcalidraw(sceneJson: string, fileName: string): void {
   );
 }
 
+let generating = false;
+
 export async function handleAiGenerate(): Promise<void> {
+  if (generating) return;
+
   const promptEl = document.getElementById("excalihub-ai-prompt") as HTMLTextAreaElement;
   const statusEl = document.getElementById("excalihub-ai-status")!;
   const btn = document.getElementById("excalihub-ai-btn") as HTMLButtonElement;
@@ -621,6 +626,7 @@ export async function handleAiGenerate(): Promise<void> {
     return;
   }
 
+  generating = true;
   btn.disabled = true;
   statusEl.className = "excalihub-ai-status loading";
 
@@ -630,8 +636,8 @@ export async function handleAiGenerate(): Promise<void> {
     if (isExtend) {
       statusEl.textContent = "Reading canvas...";
 
-      const elementsRaw = localStorage.getItem("excalidraw");
-      if (!elementsRaw) throw new Error("No elements found on canvas. Draw something first or uncheck 'Extend canvas'.");
+      const elementsRaw = localStorage.getItem(EXCALIDRAW_LC_KEY);
+      if (!elementsRaw) throw new Error("Could not read canvas data from Excalidraw. Draw something first or uncheck 'Extend canvas'.");
 
       const summary = summarizeCanvas(elementsRaw);
       if (!summary) throw new Error("Could not read canvas elements. Try unchecking 'Extend canvas'.");
@@ -643,9 +649,8 @@ export async function handleAiGenerate(): Promise<void> {
       // Patch bindings: if new arrows reference existing shapes via connectToExisting
       const existingElements = [...summary.elements];
       for (const el of newElements) {
-        const connectTo = (el as Record<string, unknown>).connectToExisting as string[] | undefined;
-        if (connectTo && Array.isArray(connectTo)) {
-          for (const existingId of connectTo) {
+        if (el.connectToExisting?.length) {
+          for (const existingId of el.connectToExisting) {
             const existing = existingElements.find((e) => e.id === existingId);
             if (existing) {
               const bound = existing.boundElements ? [...existing.boundElements] : [];
@@ -655,7 +660,7 @@ export async function handleAiGenerate(): Promise<void> {
               existing.boundElements = bound;
             }
           }
-          delete (el as Record<string, unknown>).connectToExisting;
+          delete el.connectToExisting;
         }
       }
 
@@ -707,6 +712,7 @@ export async function handleAiGenerate(): Promise<void> {
     statusEl.className = "excalihub-ai-status error";
     statusEl.textContent = err instanceof Error ? err.message : "Failed to generate drawing.";
   } finally {
+    generating = false;
     btn.disabled = false;
   }
 }
@@ -714,36 +720,23 @@ export async function handleAiGenerate(): Promise<void> {
 export async function showApiKeySettings(): Promise<void> {
   const currentKey = await getApiKey();
   const masked = currentKey ? currentKey.slice(0, 10) + "..." + currentKey.slice(-4) : "";
-  const isDark = getExcalidrawTheme() === "dark";
 
-  const overlay = document.createElement("div");
-  overlay.id = "excalihub-modal-overlay";
-  overlay.className = `excalihub-modal-overlay${isDark ? " theme-dark" : ""}`;
-  overlay.innerHTML = `
-    <div class="excalihub-modal">
-      <h3>AI Settings</h3>
-      <form id="excalihub-api-key-form" autocomplete="off">
-        <div class="excalihub-modal-label">Anthropic API Key</div>
-        <input class="excalihub-modal-link-input" id="excalihub-api-key-input"
-          type="password" placeholder="sk-ant-..." value="${escapeHtml(currentKey)}" autocomplete="off" />
-        <div class="excalihub-ai-key-hint">${currentKey ? "Current: " + escapeHtml(masked) : "No key configured"}</div>
-        <div style="display:flex;gap:0.5rem;margin-top:1rem;">
-          <button type="submit" class="excalihub-btn primary">Save</button>
-          <button type="button" class="excalihub-btn" id="excalihub-cancel-key-btn">Cancel</button>
-        </div>
-      </form>
-      <div class="excalihub-modal-divider"></div>
-      <div class="excalihub-modal-note">Your API key is stored locally in Chrome storage and never sent anywhere except the Anthropic API.</div>
-    </div>
-  `;
-
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) overlay.remove();
-  });
-
-  const existing = document.getElementById("excalihub-modal-overlay");
-  if (existing) existing.remove();
-  document.body.appendChild(overlay);
+  const overlay = showModal(`
+    <h3>AI Settings</h3>
+    <form id="excalihub-api-key-form" autocomplete="off">
+      <div class="excalihub-modal-label">Anthropic API Key</div>
+      <input class="excalihub-modal-link-input" id="excalihub-api-key-input"
+        type="password" placeholder="sk-ant-..." autocomplete="off"
+        style="width:100%;box-sizing:border-box;" />
+      <div class="excalihub-ai-key-hint">${currentKey ? "Current: " + escapeHtml(masked) : "No key configured"}</div>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem;justify-content:flex-end;">
+        <button type="button" class="excalihub-btn" id="excalihub-cancel-key-btn">Cancel</button>
+        <button type="submit" class="excalihub-btn primary">Save</button>
+      </div>
+    </form>
+    <div class="excalihub-modal-divider"></div>
+    <div class="excalihub-modal-note">Your API key is stored locally in Chrome storage and never sent anywhere except the Anthropic API.</div>
+  `);
 
   document.getElementById("excalihub-api-key-form")!.addEventListener("submit", async (e) => {
     e.preventDefault();
