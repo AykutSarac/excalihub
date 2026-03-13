@@ -1,35 +1,44 @@
+interface ExcalidrawAPI {
+  updateScene: (scene: unknown) => void;
+  getAppState: () => Record<string, any>;
+  isDestroyed?: boolean;
+}
+
+interface BridgeMessage {
+  source: string;
+  id: string;
+  method: string;
+  args?: unknown[];
+}
+
 (function () {
-  function isAPI(obj) {
+  function isAPI(obj: unknown): obj is ExcalidrawAPI {
     return (
-      obj &&
+      obj != null &&
       typeof obj === "object" &&
-      typeof obj.updateScene === "function" &&
-      typeof obj.getAppState === "function"
+      typeof (obj as ExcalidrawAPI).updateScene === "function" &&
+      typeof (obj as ExcalidrawAPI).getAppState === "function"
     );
   }
 
-  var cachedAPI = null;
+  let cachedAPI: ExcalidrawAPI | null = null;
 
-  function findAPI() {
-    // Return cached if still valid
+  function findAPI(): ExcalidrawAPI | null {
     if (cachedAPI && !cachedAPI.isDestroyed && isAPI(cachedAPI)) {
       return cachedAPI;
     }
     cachedAPI = null;
 
-    var el = document.querySelector(".excalidraw");
+    const el = document.querySelector(".excalidraw");
     if (!el) return null;
 
-    var fiberKey = Object.keys(el).find(function (k) {
-      return (
-        k.startsWith("__reactFiber$") ||
-        k.startsWith("__reactInternalInstance$")
-      );
-    });
+    const fiberKey = Object.keys(el).find(
+      (k) => k.startsWith("__reactFiber$") || k.startsWith("__reactInternalInstance$")
+    );
     if (!fiberKey) return null;
 
-    var fiber = el[fiberKey];
-    var visited = new Set();
+    let fiber: any = (el as any)[fiberKey];
+    const visited = new Set();
 
     while (fiber && !visited.has(fiber)) {
       visited.add(fiber);
@@ -48,9 +57,9 @@
 
       // React hooks (useState / useRef)
       if (fiber.memoizedState) {
-        var hook = fiber.memoizedState;
+        let hook = fiber.memoizedState;
         while (hook) {
-          var val = hook.memoizedState;
+          const val = hook.memoizedState;
           if (isAPI(val)) { cachedAPI = val; return cachedAPI; }
           if (val && val.current && isAPI(val.current)) { cachedAPI = val.current; return cachedAPI; }
           if (hook.queue && isAPI(hook.queue.lastRenderedState)) {
@@ -73,35 +82,29 @@
     return null;
   }
 
-  window.addEventListener("message", function (e) {
+  window.addEventListener("message", function (e: MessageEvent) {
     if (e.source !== window) return;
     if (!e.data || e.data.source !== "excalihub-content") return;
 
-    var id = e.data.id;
-    var method = e.data.method;
-    var args = e.data.args || [];
-    var api = findAPI();
+    const { id, method, args = [] } = e.data as BridgeMessage;
+    const api = findAPI();
 
     if (method === "ping") {
-      window.postMessage({ source: "excalihub-bridge", id: id, result: !!api });
+      window.postMessage({ source: "excalihub-bridge", id, result: !!api });
       return;
     }
 
     if (!api) {
-      window.postMessage({
-        source: "excalihub-bridge",
-        id: id,
-        error: "API not found",
-      });
+      window.postMessage({ source: "excalihub-bridge", id, error: "API not found" });
       return;
     }
 
     try {
       if (method === "getAppState") {
-        var s = api.getAppState();
+        const s = api.getAppState();
         window.postMessage({
           source: "excalihub-bridge",
-          id: id,
+          id,
           result: {
             scrollX: s.scrollX,
             scrollY: s.scrollY,
@@ -118,23 +121,15 @@
         });
       } else if (method === "updateScene") {
         api.updateScene(args[0]);
-        window.postMessage({
-          source: "excalihub-bridge",
-          id: id,
-          result: true,
-        });
+        window.postMessage({ source: "excalihub-bridge", id, result: true });
       } else {
-        window.postMessage({
-          source: "excalihub-bridge",
-          id: id,
-          error: "Unknown method: " + method,
-        });
+        window.postMessage({ source: "excalihub-bridge", id, error: "Unknown method: " + method });
       }
-    } catch (err) {
+    } catch (err: unknown) {
       window.postMessage({
         source: "excalihub-bridge",
-        id: id,
-        error: err.message,
+        id,
+        error: err instanceof Error ? err.message : String(err),
       });
     }
   });

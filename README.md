@@ -5,7 +5,7 @@
 <h1 align="center">Excalihub</h1>
 
 <p align="center">
-  A Chrome extension that extends the capabilities of <a href="https://excalidraw.com">Excalidraw</a> — save, organize, and generate drawings with AI, all without leaving the canvas.
+  A Chrome extension that supercharges <a href="https://excalidraw.com">Excalidraw</a> — save &amp; organize drawings, presentation mode, and AI diagram generation, all without leaving the canvas.
 </p>
 
 <p align="center">

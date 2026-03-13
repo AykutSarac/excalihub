@@ -9,11 +9,11 @@
     {
       "matches": ["https://excalidraw.com/*"],
       "js": ["dist/content.js"],
-      "css": ["content.css"]
+      "css": ["src/content.css"]
     },
     {
       "matches": ["https://excalidraw.com/*"],
-      "js": ["bridge.js"],
+      "js": ["dist/bridge.js"],
       "world": "MAIN"
     }
   ],
