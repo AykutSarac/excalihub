@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Excalihub",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Store and manage Excalidraw files locally in your browser",
   "permissions": ["storage", "unlimitedStorage"],
   "host_permissions": ["https://api.anthropic.com/*"],

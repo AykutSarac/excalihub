@@ -1,6 +1,6 @@
 {
   "name": "excalihub",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A Chrome extension to save, organize, and manage Excalidraw drawings locally in the browser",
   "author": "Aykut Sarac <https://x.com/aykutsarach>",
   "license": "MIT",
