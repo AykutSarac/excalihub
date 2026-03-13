@@ -18,12 +18,22 @@ function applyTheme(): void {
 
 function observeTheme(): void {
   const observer = new MutationObserver(() => applyTheme());
-  const target =
-    document.querySelector(".excalidraw") || document.documentElement;
-  observer.observe(target, {
-    attributes: true,
-    attributeFilter: ["class"],
-  });
+
+  function tryObserve(): void {
+    const target = document.querySelector(".excalidraw");
+    if (target) {
+      observer.observe(target, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+      applyTheme();
+    } else {
+      // .excalidraw not in DOM yet — retry until it appears
+      requestAnimationFrame(tryObserve);
+    }
+  }
+
+  tryObserve();
 }
 
 // ── Presentation drawer view ─────────────────────────────────────────
