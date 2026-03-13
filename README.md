@@ -5,37 +5,51 @@
 <h1 align="center">Excalihub</h1>
 
 <p align="center">
-  A Chrome extension to save, organize, and manage your <a href="https://excalidraw.com">Excalidraw</a> drawings locally in the browser.
+  A Chrome extension that extends the capabilities of <a href="https://excalidraw.com">Excalidraw</a> — save, organize, and generate drawings with AI, all without leaving the canvas.
 </p>
 
-<img width="2560" height="1600" alt="1" src="https://github.com/user-attachments/assets/88afff04-f24b-458e-abd5-465b5d944006" />
+<p align="center">
+  <a href="https://chromewebstore.google.com/detail/excalihub/lihpbdgcmndoecbiceiknanhgclbkmab"><img src="https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=googlechrome&logoColor=white" alt="Chrome Web Store" /></a>
+  <a href="https://github.com/AykutSarac/excalihub/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" /></a>
+  <a href="https://excalidraw.com"><img src="https://img.shields.io/badge/works%20with-Excalidraw-6965db" alt="Works with Excalidraw" /></a>
+</p>
+
+<br />
+
+<img width="1280" height="800" alt="Excalihub screenshot" src="https://github.com/user-attachments/assets/88afff04-f24b-458e-abd5-465b5d944006" />
 
 ---
 
 ## Features
 
-- **Save & update** — Save the current scene or update an existing file in one click
-- **Import** — Import `.excalidraw` files from your computer
-- **Folders** — Organize drawings into folders
-- **Share** — Generate a shareable Excalidraw link (end-to-end encrypted)
-- **Export** — Download individual files or everything as a `.zip`
-- **Dark mode** — Automatically follows Excalidraw's theme
+- **Save & Organize** — Save scenes, rename files, organize into folders, import/export `.excalidraw` files
+- **AI Generation** — Describe a diagram in plain text and get a full Excalidraw scene with shapes, arrows, and labels
+- **Extend Canvas** — AI reads your existing drawing and adds to it contextually
+- **Share** — Generate shareable Excalidraw links from the file menu
+- **Bulk Export** — Download your entire library as a `.zip`
+- **Dark Mode** — Automatically matches Excalidraw's theme
+- **BYOK** — Uses the Anthropic API with your own key, stored locally
 
 ## Installation
 
-1. Clone and build:
+Install from the [Chrome Web Store](https://chromewebstore.google.com/detail/excalihub/lihpbdgcmndoecbiceiknanhgclbkmab), or build manually:
 
-   ```bash
-   git clone https://github.com/AykutSarac/excalihub.git
-   cd excalihub
-   npm install
-   npm run build
-   ```
+```bash
+git clone https://github.com/AykutSarac/excalihub.git
+cd excalihub
+npm install
+npm run build
+```
 
-2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the project folder.
+Then open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the project folder.
 
-3. Go to [excalidraw.com](https://excalidraw.com) — the **Excalihub** button appears on the right.
+## Development
+
+```bash
+npm run watch    # rebuild on file changes
+npm run zip      # create a release zip
+```
 
 ## License
 
-MIT
+[MIT](LICENSE)
