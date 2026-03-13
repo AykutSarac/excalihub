@@ -9,7 +9,12 @@
     "url": "https://github.com/AykutSarac/excalihub.git"
   },
   "homepage": "https://github.com/AykutSarac/excalihub",
-  "keywords": ["excalidraw", "chrome-extension", "drawing", "whiteboard"],
+  "keywords": [
+    "excalidraw",
+    "chrome-extension",
+    "drawing",
+    "whiteboard"
+  ],
   "private": true,
   "scripts": {
     "build": "vite build",
@@ -24,6 +29,7 @@
     "vite": "^7.3.1"
   },
   "dependencies": {
+    "jsonrepair": "^3.13.3",
     "jszip": "^3.10.1",
     "pako": "^2.1.0"
   }

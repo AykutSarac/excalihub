@@ -1,4 +1,4 @@
-import { saveCurrentScene, handleFileImport, renderFileList, closeAllMenus, exportAllFiles, deleteAllFilesPrompt } from "./ui";
+import { saveCurrentScene, handleFileImport, renderFileList, closeAllMenus, exportAllFiles, deleteAllFilesPrompt, handleAiGenerate, showApiKeySettings } from "./ui";
 import { getExcalidrawTheme } from "./theme";
 
 function applyTheme(): void {
@@ -45,6 +45,7 @@ function createPanel(): void {
           </svg>
         </button>
         <div class="excalihub-menu" id="excalihub-header-menu">
+          <button class="excalihub-menu-item" id="excalihub-api-key-btn">API Key Settings</button>
           <button class="excalihub-menu-item" id="excalihub-export-all-btn">Export all</button>
           <div class="excalihub-menu-divider"></div>
           <button class="excalihub-menu-item danger" id="excalihub-delete-all-btn">Delete all</button>
@@ -54,6 +55,36 @@ function createPanel(): void {
     <div class="excalihub-actions">
       <button class="excalihub-btn primary" id="excalihub-save-btn">Save current</button>
       <button class="excalihub-btn" id="excalihub-import-btn">Import file</button>
+    </div>
+    <div class="excalihub-ai-section">
+      <div class="excalihub-ai-header" id="excalihub-ai-toggle">
+        <span class="excalihub-ai-label">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a4 4 0 0 0-4 4c0 2 2 3 2 5h4c0-2 2-3 2-5a4 4 0 0 0-4-4z"/>
+            <line x1="10" y1="17" x2="14" y2="17"/>
+            <line x1="10" y1="20" x2="14" y2="20"/>
+            <line x1="11" y1="23" x2="13" y2="23"/>
+          </svg>
+          Generate with AI
+        </span>
+        <svg class="excalihub-ai-chevron" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="excalihub-ai-body" id="excalihub-ai-body">
+        <textarea class="excalihub-ai-prompt" id="excalihub-ai-prompt" placeholder="Describe what you want to draw...&#10;&#10;e.g. A flowchart showing user login flow with steps: enter credentials, validate, success/failure branches" rows="3"></textarea>
+        <label class="excalihub-ai-extend-label" for="excalihub-ai-extend">
+          <input type="checkbox" id="excalihub-ai-extend" class="excalihub-ai-extend-checkbox" />
+          <span>Extend current canvas</span>
+        </label>
+        <button class="excalihub-btn primary excalihub-ai-btn" id="excalihub-ai-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          Generate
+        </button>
+        <div class="excalihub-ai-status" id="excalihub-ai-status"></div>
+      </div>
     </div>
     <div class="excalihub-file-list" id="excalihub-file-list"></div>
     <input type="file" id="excalihub-file-input" accept=".excalidraw" multiple style="display:none" />
@@ -90,6 +121,31 @@ function createPanel(): void {
         if (m !== menu) m.classList.remove("open");
       });
       menu.classList.toggle("open");
+    });
+
+  // AI section toggle
+  document.getElementById("excalihub-ai-toggle")!.addEventListener("click", () => {
+    const body = document.getElementById("excalihub-ai-body")!;
+    const section = body.parentElement!;
+    section.classList.toggle("expanded");
+  });
+
+  // AI generate button
+  document.getElementById("excalihub-ai-btn")!.addEventListener("click", handleAiGenerate);
+
+  // AI prompt Ctrl+Enter shortcut
+  document.getElementById("excalihub-ai-prompt")!.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      handleAiGenerate();
+    }
+  });
+
+  document
+    .getElementById("excalihub-api-key-btn")!
+    .addEventListener("click", () => {
+      closeAllMenus();
+      showApiKeySettings();
     });
 
   document

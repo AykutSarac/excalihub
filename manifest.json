@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "Store and manage Excalidraw files locally in your browser",
   "permissions": ["storage", "unlimitedStorage"],
+  "host_permissions": ["https://api.anthropic.com/*"],
   "content_scripts": [
     {
       "matches": ["https://excalidraw.com/*"],

@@ -2,6 +2,9 @@ import JSZip from "jszip";
 import { STORAGE_KEY, FOLDERS_KEY, saveFile, getAllFiles, getFile, deleteFile, updateFileData, updateFileName, moveFileToFolder, getAllFolders, createFolder, renameFolder, deleteFolder } from "./db";
 import { shareToExcalidraw } from "./share";
 import { getExcalidrawTheme } from "./theme";
+import { generateDrawing, generateContinuation, summarizeCanvas, getApiKey, setApiKey } from "./ai";
+
+const EXCALIDRAW_LC_KEY = "excalidraw";
 
 let currentFolderId: string | undefined = undefined;
 
@@ -84,7 +87,7 @@ function getIndexedDBFiles(): Promise<Record<string, unknown>> {
 }
 
 async function extractSceneFromPage(): Promise<string | null> {
-  const elementsRaw = localStorage.getItem("excalidraw");
+  const elementsRaw = localStorage.getItem(EXCALIDRAW_LC_KEY);
   if (!elementsRaw) return null;
 
   let elements: unknown[];
@@ -584,4 +587,165 @@ async function deleteFilePrompt(id: string): Promise<void> {
   if (!confirm("Delete this file?")) return;
   await deleteFile(id);
   renderFileList();
+}
+
+function loadSceneToExcalidraw(sceneJson: string, fileName: string): void {
+  const blob = new Blob([sceneJson], { type: "application/json" });
+  const file = new File([blob], fileName, { type: "application/json" });
+
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(file);
+
+  const canvas = document.querySelector(".excalidraw") as HTMLElement;
+  if (!canvas) return;
+
+  canvas.dispatchEvent(
+    new DragEvent("drop", {
+      bubbles: true,
+      cancelable: true,
+      dataTransfer,
+    })
+  );
+}
+
+let generating = false;
+
+export async function handleAiGenerate(): Promise<void> {
+  if (generating) return;
+
+  const promptEl = document.getElementById("excalihub-ai-prompt") as HTMLTextAreaElement;
+  const statusEl = document.getElementById("excalihub-ai-status")!;
+  const btn = document.getElementById("excalihub-ai-btn") as HTMLButtonElement;
+  const extendToggle = document.getElementById("excalihub-ai-extend") as HTMLInputElement | null;
+  const prompt = promptEl.value.trim();
+  const isExtend = extendToggle?.checked ?? false;
+
+  if (!prompt) {
+    statusEl.className = "excalihub-ai-status error";
+    statusEl.textContent = "Please describe what you want to draw.";
+    return;
+  }
+
+  generating = true;
+  btn.disabled = true;
+  statusEl.className = "excalihub-ai-status loading";
+
+  try {
+    let sceneJson: string;
+
+    if (isExtend) {
+      statusEl.textContent = "Reading canvas...";
+
+      const elementsRaw = localStorage.getItem(EXCALIDRAW_LC_KEY);
+      if (!elementsRaw) throw new Error("Could not read canvas data from Excalidraw. Draw something first or uncheck 'Extend canvas'.");
+
+      const summary = summarizeCanvas(elementsRaw);
+      if (!summary) throw new Error("Could not read canvas elements. Try unchecking 'Extend canvas'.");
+
+      statusEl.textContent = `Extending drawing (${summary.shapes.length} shapes found)...`;
+
+      const newElements = await generateContinuation(prompt, summary);
+
+      // Patch bindings: if new arrows reference existing shapes via connectToExisting
+      const existingElements = [...summary.elements];
+      for (const el of newElements) {
+        if (el.connectToExisting?.length) {
+          for (const existingId of el.connectToExisting) {
+            const existing = existingElements.find((e) => e.id === existingId);
+            if (existing) {
+              const bound = existing.boundElements ? [...existing.boundElements] : [];
+              if (!bound.some((b) => b.id === el.id)) {
+                bound.push({ id: el.id, type: "arrow" });
+              }
+              existing.boundElements = bound;
+            }
+          }
+          delete el.connectToExisting;
+        }
+      }
+
+      // Merge existing + new elements into a full scene
+      const mergedElements = [...existingElements, ...newElements];
+
+      // Read current appState
+      let appState: Record<string, unknown> = {};
+      const appStateRaw = localStorage.getItem("excalidraw-state");
+      if (appStateRaw) {
+        try { appState = JSON.parse(appStateRaw); } catch { /* ignore */ }
+      }
+
+      const files = await getIndexedDBFiles();
+
+      const scene = {
+        type: "excalidraw",
+        version: 2,
+        source: "https://excalidraw.com",
+        elements: mergedElements,
+        appState,
+        files,
+      };
+
+      sceneJson = JSON.stringify(scene, null, 2);
+    } else {
+      statusEl.textContent = "Generating drawing...";
+      sceneJson = await generateDrawing(prompt);
+    }
+
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const fileName = `ai-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}.excalidraw`;
+
+    loadSceneToExcalidraw(sceneJson, fileName);
+
+    await saveFile(fileName, sceneJson);
+    renderFileList();
+
+    statusEl.className = "excalihub-ai-status success";
+    statusEl.textContent = isExtend ? "Canvas extended!" : "Drawing generated and loaded!";
+    promptEl.value = "";
+
+    setTimeout(() => {
+      statusEl.className = "excalihub-ai-status";
+      statusEl.textContent = "";
+    }, 3000);
+  } catch (err) {
+    statusEl.className = "excalihub-ai-status error";
+    statusEl.textContent = err instanceof Error ? err.message : "Failed to generate drawing.";
+  } finally {
+    generating = false;
+    btn.disabled = false;
+  }
+}
+
+export async function showApiKeySettings(): Promise<void> {
+  const currentKey = await getApiKey();
+  const masked = currentKey ? currentKey.slice(0, 10) + "..." + currentKey.slice(-4) : "";
+
+  const overlay = showModal(`
+    <h3>AI Settings</h3>
+    <form id="excalihub-api-key-form" autocomplete="off">
+      <div class="excalihub-modal-label">Anthropic API Key</div>
+      <input class="excalihub-modal-link-input" id="excalihub-api-key-input"
+        type="password" placeholder="sk-ant-..." autocomplete="off"
+        style="width:100%;box-sizing:border-box;" />
+      <div class="excalihub-ai-key-hint">${currentKey ? "Current: " + escapeHtml(masked) : "No key configured"}</div>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem;justify-content:flex-end;">
+        <button type="button" class="excalihub-btn" id="excalihub-cancel-key-btn">Cancel</button>
+        <button type="submit" class="excalihub-btn primary">Save</button>
+      </div>
+    </form>
+    <div class="excalihub-modal-divider"></div>
+    <div class="excalihub-modal-note">Your API key is stored locally in Chrome storage and never sent anywhere except the Anthropic API.</div>
+  `);
+
+  document.getElementById("excalihub-api-key-form")!.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = document.getElementById("excalihub-api-key-input") as HTMLInputElement;
+    await setApiKey(input.value.trim());
+    overlay.remove();
+  });
+
+  document.getElementById("excalihub-cancel-key-btn")!.addEventListener("click", () => {
+    overlay.remove();
+  });
 }
