@@ -1,5 +1,5 @@
 import { saveCurrentScene, handleFileImport, renderFileList, closeAllMenus, exportAllFiles, deleteAllFilesPrompt, handleAiGenerate, showApiKeySettings } from "./ui";
-import { enterPresentationMode } from "./presentation";
+import { enterPresentationMode, getFramesFromScene, PresentationFrame } from "./presentation";
 import { getExcalidrawTheme } from "./theme";
 
 function applyTheme(): void {
@@ -24,6 +24,243 @@ function observeTheme(): void {
     attributes: true,
     attributeFilter: ["class"],
   });
+}
+
+// ── Presentation drawer view ─────────────────────────────────────────
+let presentationFrames: PresentationFrame[] = [];
+let presPollingTimer: ReturnType<typeof setInterval> | null = null;
+
+function showPresentationView(): void {
+  const panel = document.getElementById("excalihub-panel")!;
+
+  // Ensure panel is open
+  const toggle = document.getElementById("excalihub-toggle")!;
+  if (!panel.classList.contains("open")) {
+    panel.classList.add("open");
+    toggle.classList.add("shifted");
+  }
+
+  const frames = getFramesFromScene();
+  presentationFrames = [...frames];
+
+  // Hide main content, show presentation view
+  panel.querySelectorAll<HTMLElement>(
+    ".excalihub-header, .excalihub-actions, .excalihub-ai-section, .excalihub-file-list, .excalihub-footer, #excalihub-file-input"
+  ).forEach((el) => (el.style.display = "none"));
+
+  // Remove existing presentation view if any
+  panel.querySelector(".excalihub-pres-view")?.remove();
+
+  const view = document.createElement("div");
+  view.className = "excalihub-pres-view";
+  view.innerHTML = `
+    <div class="excalihub-pres-header">
+      <button class="excalihub-pres-back" id="excalihub-pres-back">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <h2>Presentation</h2>
+    </div>
+    <div class="excalihub-pres-subtitle">Slides (${presentationFrames.length})</div>
+    <div class="excalihub-pres-slides" id="excalihub-pres-slides"></div>
+    <div class="excalihub-pres-footer">
+      <button class="excalihub-btn primary excalihub-pres-start-btn" id="excalihub-pres-start"${presentationFrames.length === 0 ? " disabled" : ""}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        Start presentation
+      </button>
+    </div>
+  `;
+  panel.appendChild(view);
+
+  rebuildSlideItems();
+  initSlideListDragDrop();
+
+  // Back button
+  document.getElementById("excalihub-pres-back")!.addEventListener("click", hidePresentationView);
+
+  // Start button
+  document.getElementById("excalihub-pres-start")!.addEventListener("click", () => {
+    panel.classList.remove("open");
+    toggle.classList.remove("shifted");
+    hidePresentationView();
+    enterPresentationMode(presentationFrames);
+  });
+
+  // Start polling to sync frame names/additions/removals
+  startPresPolling();
+}
+
+function syncFramesFromScene(): void {
+  const freshFrames = getFramesFromScene();
+  const freshMap = new Map(freshFrames.map((f) => [f.id, f]));
+  const existingIds = new Set(presentationFrames.map((f) => f.id));
+  const freshIds = new Set(freshFrames.map((f) => f.id));
+
+  // Check if structural change occurred (added/removed frames)
+  const removed = presentationFrames.some((f) => !freshMap.has(f.id));
+  const added = freshFrames.some((f) => !existingIds.has(f.id));
+  const structuralChange = removed || added;
+
+  if (structuralChange) {
+    // Structural change: rebuild array preserving user order
+    presentationFrames = presentationFrames
+      .filter((f) => freshIds.has(f.id))
+      .map((f) => ({ ...f, ...freshMap.get(f.id)! }));
+
+    for (const f of freshFrames) {
+      if (!existingIds.has(f.id)) presentationFrames.push(f);
+    }
+
+    updatePresSubtitle();
+    rebuildSlideItems();
+    return;
+  }
+
+  // No structural change — do surgical name/position updates only
+  let anyNameChanged = false;
+  for (const f of presentationFrames) {
+    const fresh = freshMap.get(f.id)!;
+    if (f.name !== fresh.name) anyNameChanged = true;
+    f.name = fresh.name;
+    f.x = fresh.x;
+    f.y = fresh.y;
+    f.width = fresh.width;
+    f.height = fresh.height;
+  }
+
+  // Patch DOM in-place for name changes (no re-render, no drag state reset)
+  if (anyNameChanged) {
+    const container = document.getElementById("excalihub-pres-slides");
+    if (!container) return;
+    const items = container.querySelectorAll(".excalihub-pres-slide-item");
+    items.forEach((item, i) => {
+      if (i < presentationFrames.length) {
+        const nameEl = item.querySelector(".excalihub-pres-slide-name");
+        if (nameEl) nameEl.textContent = presentationFrames[i].name;
+      }
+    });
+  }
+}
+
+function updatePresSubtitle(): void {
+  const subtitle = document.querySelector(".excalihub-pres-subtitle");
+  if (subtitle) subtitle.textContent = `Slides (${presentationFrames.length})`;
+  const startBtn = document.getElementById("excalihub-pres-start") as HTMLButtonElement | null;
+  if (startBtn) startBtn.disabled = presentationFrames.length === 0;
+}
+
+function startPresPolling(): void {
+  stopPresPolling();
+  presPollingTimer = setInterval(syncFramesFromScene, 1000);
+}
+
+function stopPresPolling(): void {
+  if (presPollingTimer !== null) {
+    clearInterval(presPollingTimer);
+    presPollingTimer = null;
+  }
+}
+
+function buildSlideItemEl(frame: PresentationFrame, index: number): HTMLElement {
+  const item = document.createElement("div");
+  item.className = "excalihub-pres-slide-item";
+  item.draggable = true;
+  item.dataset.index = String(index);
+  item.innerHTML = `
+    <span class="excalihub-pres-slide-handle" title="Drag to reorder">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
+        <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+        <circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+      </svg>
+    </span>
+    <span class="excalihub-pres-slide-number">${index + 1}</span>
+    <span class="excalihub-pres-slide-name">${escapeHtml(frame.name)}</span>
+  `;
+  return item;
+}
+
+function rebuildSlideItems(): void {
+  const container = document.getElementById("excalihub-pres-slides");
+  if (!container) return;
+
+  if (presentationFrames.length === 0) {
+    container.innerHTML = `
+      <div class="excalihub-pres-empty">
+        <p>No frames found on the canvas.</p>
+        <p>Add frames to your drawing to create slides.<br/>Tip: Press F or use the frame tool.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = "";
+  presentationFrames.forEach((frame, index) => {
+    container.appendChild(buildSlideItemEl(frame, index));
+  });
+}
+
+function initSlideListDragDrop(): void {
+  const container = document.getElementById("excalihub-pres-slides");
+  if (!container) return;
+
+  let dragIndex: number | null = null;
+
+  container.addEventListener("dragstart", (e) => {
+    const item = (e.target as HTMLElement).closest(".excalihub-pres-slide-item") as HTMLElement;
+    if (!item) return;
+    dragIndex = Number(item.dataset.index);
+    item.classList.add("dragging");
+    e.dataTransfer!.effectAllowed = "move";
+  });
+
+  container.addEventListener("dragend", (e) => {
+    const item = (e.target as HTMLElement).closest(".excalihub-pres-slide-item") as HTMLElement;
+    if (item) item.classList.remove("dragging");
+    container.querySelectorAll(".excalihub-pres-slide-item").forEach((el) => el.classList.remove("drag-over"));
+    dragIndex = null;
+  });
+
+  container.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = "move";
+    const item = (e.target as HTMLElement).closest(".excalihub-pres-slide-item") as HTMLElement;
+    if (!item || Number(item.dataset.index) === dragIndex) return;
+    container.querySelectorAll(".excalihub-pres-slide-item").forEach((el) => el.classList.remove("drag-over"));
+    item.classList.add("drag-over");
+  });
+
+  container.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const item = (e.target as HTMLElement).closest(".excalihub-pres-slide-item") as HTMLElement;
+    if (!item || dragIndex === null) return;
+    const dropIndex = Number(item.dataset.index);
+    if (dropIndex === dragIndex) return;
+
+    const [moved] = presentationFrames.splice(dragIndex, 1);
+    presentationFrames.splice(dropIndex, 0, moved);
+
+    updatePresSubtitle();
+    rebuildSlideItems();
+  });
+}
+
+function hidePresentationView(): void {
+  stopPresPolling();
+  const panel = document.getElementById("excalihub-panel")!;
+  panel.querySelector(".excalihub-pres-view")?.remove();
+  panel.querySelectorAll<HTMLElement>(
+    ".excalihub-header, .excalihub-actions, .excalihub-ai-section, .excalihub-file-list, .excalihub-footer, #excalihub-file-input"
+  ).forEach((el) => (el.style.display = ""));
+}
+
+function escapeHtml(str: string): string {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 function createPanel(): void {
@@ -152,10 +389,7 @@ function createPanel(): void {
   document
     .getElementById("excalihub-present-btn")!
     .addEventListener("click", () => {
-      // Close panel before presenting
-      panel.classList.remove("open");
-      toggle.classList.remove("shifted");
-      enterPresentationMode();
+      showPresentationView();
     });
 
   document

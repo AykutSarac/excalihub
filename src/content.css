@@ -792,6 +792,168 @@
 }
 
 /* ============================================
+   Presentation Drawer View
+   ============================================ */
+
+.excalihub-pres-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.excalihub-pres-header {
+  padding: 1rem 0.75rem;
+  border-bottom: 1px solid var(--et-border);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.excalihub-pres-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--et-primary);
+}
+
+.excalihub-pres-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--et-radius);
+  color: var(--et-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease-out, color 0.15s ease-out;
+}
+
+.excalihub-pres-back:hover {
+  background: var(--et-surface-high);
+  color: var(--et-text);
+}
+
+.excalihub-pres-subtitle {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--et-primary);
+  border-bottom: 1px solid var(--et-border);
+  flex-shrink: 0;
+}
+
+.excalihub-pres-slides {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0.75rem;
+}
+
+.excalihub-pres-slides::-webkit-scrollbar {
+  width: 6px;
+}
+
+.excalihub-pres-slides::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.excalihub-pres-slides::-webkit-scrollbar-thumb {
+  background: var(--et-scrollbar);
+  border-radius: 3px;
+}
+
+.excalihub-pres-slide-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  margin-bottom: 0.375rem;
+  background: var(--et-bg-alt);
+  border: 1px solid var(--et-border);
+  border-radius: var(--et-radius);
+  cursor: grab;
+  transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out, opacity 0.15s ease-out;
+  user-select: none;
+}
+
+.excalihub-pres-slide-item:hover {
+  border-color: var(--et-primary);
+}
+
+.excalihub-pres-slide-item.dragging {
+  opacity: 0.4;
+}
+
+.excalihub-pres-slide-item.drag-over {
+  border-color: var(--et-primary);
+  box-shadow: 0 0 0 1px var(--et-primary);
+}
+
+.excalihub-pres-slide-handle {
+  display: flex;
+  align-items: center;
+  color: var(--et-text-muted);
+  flex-shrink: 0;
+  cursor: grab;
+}
+
+.excalihub-pres-slide-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: var(--et-surface-low);
+  border-radius: var(--et-radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--et-text-secondary);
+  flex-shrink: 0;
+}
+
+.excalihub-pres-slide-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--et-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.excalihub-pres-empty {
+  text-align: center;
+  padding: 2.5rem 1.25rem;
+  color: var(--et-text-muted);
+}
+
+.excalihub-pres-empty p {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.excalihub-pres-footer {
+  padding: 0.75rem;
+  border-top: 1px solid var(--et-border);
+  flex-shrink: 0;
+}
+
+.excalihub-pres-start-btn {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.excalihub-pres-start-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================
    Presentation Mode
    ============================================ */
 

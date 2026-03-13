@@ -1,4 +1,4 @@
-interface PresentationFrame {
+export interface PresentationFrame {
   id: string;
   name: string;
   x: number;
@@ -52,7 +52,7 @@ function callBridge<T = any>(method: string, ...args: any[]): Promise<T> {
 }
 
 // ── Frame extraction (localStorage is accessible from content script) ─
-function getFramesFromScene(): PresentationFrame[] {
+export function getFramesFromScene(): PresentationFrame[] {
   const raw = localStorage.getItem("excalidraw");
   if (!raw) return [];
 
@@ -217,7 +217,7 @@ function downloadSlide(): void {
 }
 
 // ── Enter / Exit ──────────────────────────────────────────────────────
-export async function enterPresentationMode(): Promise<void> {
+export async function enterPresentationMode(orderedFrames?: PresentationFrame[]): Promise<void> {
   if (state) return;
 
   // Check bridge is working
@@ -233,7 +233,7 @@ export async function enterPresentationMode(): Promise<void> {
     return;
   }
 
-  const frames = getFramesFromScene();
+  const frames = orderedFrames ?? getFramesFromScene();
   if (frames.length === 0) {
     alert(
       "No frames found on the canvas.\n\nAdd frames to your drawing to use Presentation Mode.\nTip: Press F or use the frame tool in Excalidraw's toolbar.",
