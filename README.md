@@ -16,7 +16,7 @@
 
 <br />
 
-<img width="1280" height="800" alt="Excalihub screenshot" src="https://github.com/user-attachments/assets/88afff04-f24b-458e-abd5-465b5d944006" />
+<img width="1280" height="800" alt="Excalihub screenshot" src="https://github.com/user-attachments/assets/ec404a79-3df0-48ab-83a7-1d48f7ccbe87" />
 
 ---
 
